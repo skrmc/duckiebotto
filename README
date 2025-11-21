@@ -1,0 +1,15 @@
+This repository contains only the "duckiebotto" ROS package,
+intended to be used together with the Duckietown ROS template (v4):
+https://github.com/duckietown/template-ros/tree/v4
+
+It provides a minimal Duckiebot system that can drive autonomously,
+avoid obstacles, and recognize traffic lights, with a web interface.
+
+To build and run the system on your Duckiebot, clone this repository and use the
+following commands, replacing <duckiebot> with the hostname of your Duckiebot:
+
+dts devel build -f -H <duckiebot>
+dts devel run -H <duckiebot>
+
+You may then navigate to http://<duckiebot>:8888 in your browser.
+The webpage icon is from Duckietown (original license applies).

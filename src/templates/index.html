@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Duckiebot Control - {{ vehicle_name }}</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+    <div class="max-w-5xl mx-auto py-8 px-4">
+        <header class="mb-6 flex items-center gap-4">
+            <h1 class="text-3xl font-semibold uppercase">{{ vehicle_name }}</h1>
+            <span id="connectionStatus" class="w-4 h-4 rounded-full bg-amber-500" title="Connecting..."></span>
+        </header>
+
+        <!-- Video section -->
+        <section class="grid md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-slate-800 rounded-xl shadow flex flex-col">
+                <div class="p-2 text-sm uppercase tracking-wide">Raw camera</div>
+                <canvas id="rawCanvas" width="160" height="120" class="w-full bg-black" style="aspect-ratio: 4 / 3; object-fit: cover;"></canvas>
+                <div class="p-2 flex items-center gap-3 text-sm">
+                    <label for="rawFps" class="text-slate-300 uppercase tracking-wide">Raw FPS</label>
+                    <input id="rawFps" type="range" min="1" max="30" value="10" class="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer">
+                    <span id="rawFpsValue" class="font-mono text-slate-200">10 FPS</span>
+                </div>
+            </div>
+            <div class="bg-slate-800 rounded-xl shadow flex flex-col">
+                <div class="p-2 text-sm uppercase tracking-wide">Processed view</div>
+                <canvas id="outCanvas" width="160" height="120" class="w-full bg-black" style="aspect-ratio: 4 / 3; object-fit: cover;"></canvas>
+                <div class="p-2 flex items-center gap-3 text-sm">
+                    <label for="outFps" class="text-slate-300 uppercase tracking-wide">Processed FPS</label>
+                    <input id="outFps" type="range" min="1" max="30" value="10" class="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer">
+                    <span id="outFpsValue" class="font-mono text-slate-200">10 FPS</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls + Debug -->
+        <section class="grid md:grid-cols-2 gap-4 mb-6">
+            <!-- Controls -->
+            <div class="bg-slate-800 rounded-xl shadow p-4">
+                <h2 class="text-xl font-semibold mb-4">Controls</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer mode-toggle" data-mode="lane_follow" data-state="lane_follow_enabled">
+                        <div class="relative w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                        <span class="ms-3 text-sm font-medium text-slate-300">Lane Following</span>
+                    </label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer mode-toggle" data-mode="obstacle_avoid" data-state="obstacle_avoid_enabled">
+                        <div class="relative w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                        <span class="ms-3 text-sm font-medium text-slate-300">Obstacle Avoidance</span>
+                    </label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer mode-toggle" data-mode="traffic_light" data-state="traffic_light_enabled">
+                        <div class="relative w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                        <span class="ms-3 text-sm font-medium text-slate-300">Traffic Lights</span>
+                    </label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer mode-toggle" data-mode="manual" data-state="manual_mode">
+                        <div class="relative w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <span class="ms-3 text-sm font-medium text-slate-300">Manual Drive</span>
+                    </label>
+                </div>
+
+                <div class="mt-6">
+                    <div class="flex items-center justify-between">
+                        <label for="speedLimit" class="text-sm font-medium text-slate-200">Speed Limit</label>
+                        <span id="speedLimitValue" class="text-sm font-mono text-slate-100">No limit</span>
+                    </div>
+                    <input id="speedLimit" type="range" min="20" max="100" step="5" value="100" class="w-full mt-2 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <button id="allAutoBtn" class="mt-6 w-full px-4 py-2 rounded-lg bg-slate-600 text-white font-semibold hover:bg-slate-700 transition-colors">
+                    Loading...
+                </button>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="bg-slate-800 rounded-xl shadow p-4 flex flex-col">
+                    <h2 class="text-xl font-semibold mb-3">Debug</h2>
+                    <dl class="grid grid-cols-2 text-sm flex-1 content-between" id="debugList">
+                        <dt class="text-slate-400">Mode</dt><dd id="debugMode">--</dd>
+                        <dt class="text-slate-400">Lane d (m)</dt><dd id="debugLaneD">--</dd>
+                        <dt class="text-slate-400">Lane φ (rad)</dt><dd id="debugLanePhi">--</dd>
+                        <dt class="text-slate-400">In lane</dt><dd id="debugInLane">--</dd>
+                        <dt class="text-slate-400">ToF distance</dt><dd id="debugTof">--</dd>
+                        <dt class="text-slate-400">Traffic light</dt><dd id="debugLight">--</dd>
+                        <dt class="text-slate-400">Obstacle</dt><dd id="debugObstacle">--</dd>
+                    </dl>
+                </div>
+
+                <div class="bg-slate-800 rounded-xl shadow p-4 flex flex-col gap-4">
+                    <h2 class="text-xl font-semibold">Color Calibration</h2>
+                    <label class="text-sm font-medium text-slate-200 flex flex-col gap-1">
+                        <span>Yellow reference</span>
+                        <input
+                            id="colorYellow"
+                            name="colorYellow"
+                            type="text"
+                            spellcheck="false"
+                            inputmode="text"
+                            pattern="^#?[0-9A-Fa-f]{6}$"
+                            maxlength="7"
+                            placeholder="#F2C100"
+                            value="{{ color_refs.yellow if color_refs else '' }}"
+                            class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                    </label>
+                    <label class="text-sm font-medium text-slate-200 flex flex-col gap-1">
+                        <span>White reference</span>
+                        <input
+                            id="colorWhite"
+                            name="colorWhite"
+                            type="text"
+                            spellcheck="false"
+                            inputmode="text"
+                            pattern="^#?[0-9A-Fa-f]{6}$"
+                            maxlength="7"
+                            placeholder="#FFFFFF"
+                            value="{{ color_refs.white if color_refs else '' }}"
+                            class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                    </label>
+                    <div class="text-sm font-medium text-slate-200 flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                            <span>Color tolerance</span>
+                            <span id="colorToleranceValue" class="font-mono text-slate-100">
+                                {{ '{:.0f}%'.format((color_tolerance_scale or 1.0) * 100) }}
+                            </span>
+                        </div>
+                        <input
+                            id="colorTolerance"
+                            type="range"
+                            min="50"
+                            max="200"
+                            step="5"
+                            value="{{ '{:.0f}'.format((color_tolerance_scale or 1.0) * 100) }}"
+                            class="w-full mt-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer"
+                        />
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
